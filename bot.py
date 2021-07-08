@@ -177,6 +177,7 @@ load_config()
 current_teams = get_current_season_teams()
 get_all_events()
 client = ScheduleReporter()
-client.run('ODU4NTI4MDE0NTAwNzU3NTA0.YNfchQ.jhuaXs4nGHOfrm95iG21ebL7B50')
+token = os.environ.get("BOT_TOKEN")
+client.run(token)
 
 # https://discord.com/oauth2/authorize?client_id=858528014500757504&permissions=1073867856&scope=bot
