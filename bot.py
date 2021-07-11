@@ -57,7 +57,8 @@ def get_all_events():
 
 
 def load_config():
-    if (os.path.exists(__location__+"fwScheduleConfig.json")):
+    if (os.path.exists(__location__+"\\fwScheduleConfig.json")):
+        print("Loading configuration from: {}".format(__location__+"\\fwScheduleConfig.json"))
         with open(__location__+"fwScheduleConfig.json", 'r') as openfile:
             global config
             config = json.load(openfile)
@@ -77,17 +78,26 @@ class ScheduleReporter(discord.Client):
     async def on_ready(self):
         print('Logged on as', self.user)
         save_config(config)
+        activity = discord.Activity(name="??help", type=discord.ActivityType.playing)
+        await client.change_presence(activity=activity)
 
     async def report_week_tier(self, tier, week):
         fields = []
 
         for event in current_events:
-            if current_events[event]['day'] == week:
-                if int(current_events[event]['seasons'][0]) == int(config['CurrentSeason']):
-                    if int(current_events[event]['leagues'][0]) == int(config['Tier{}SeasonId'.format(tier)]):
-                        fields.append({"name": "{} VS {}".format(current_teams[current_events[event]['teams'][0]], current_teams[current_events[event]['teams'][1]]),
-                               "value": "{}: {} VS {}".format(datetime.strftime(datetime.fromisoformat(current_events[event]['date']), "%A, %B %d, %I:%M %p"), current_teams[current_events[event]['teams'][0]], current_teams[current_events[event]['teams'][1]])})
-
+            if current_events[event]['day'] == week and int(current_events[event]['seasons'][0]) == int(config['CurrentSeason']) and int(current_events[event]['leagues'][0]) == int(config['Tier{}SeasonId'.format(tier)]):
+                team1name = current_teams[current_events[event]['teams'][0]]
+                team2name = current_teams[current_events[event]['teams'][1]]
+                team1score = current_events[event]['results'][str(current_events[event]['teams'][0])]['mapscore']
+                team2score = current_events[event]['results'][str(current_events[event]['teams'][1])]['mapscore']
+                name = "{} VS {}".format(team1name, team2name)
+                if team1score == "":
+                    event_time = datetime.strftime(datetime.fromisoformat(current_events[event]['date']), "%A, %B %d, %I:%M %p")
+                    value = "{}: {} VS {}".format(event_time, team1name, team2name)
+                else:
+                    value = "Score: {}: {} VS {}: {}".format(team1name, team1score, team2name, team2score)
+                fields.append({"name": name, "value": value,})
+                                            
         if len(fields) == 0:
             fields.append({"name": "Week {}".format(week),
                            "value": "No games scheduled for Week {}".format(week)})
@@ -106,10 +116,19 @@ class ScheduleReporter(discord.Client):
         if not authorized_author(message.author.roles):
             return
 
-        if message.content == '??ping':
-            await message.channel.send('pong')
+        if message.content.startswith("??"):
+            await message.add_reaction('⌚')
+            command = message.content[2:]
+            cparams = command.split()
 
-        if message.content == "??currentteams":
+        else: 
+            return
+
+        if cparams[0] == 'ping':
+            await message.channel.send('pong')
+            await message.add_reaction('✔')
+
+        elif cparams[0] == "currentteams":
             teams = current_teams
             output = ""
             for team in teams:
@@ -117,8 +136,9 @@ class ScheduleReporter(discord.Client):
                 output += "\r\n{}".format(teams[team])
             output += "\r\nID 31 (GE): {}".format(teams[31])
             await message.channel.send(output)
+            await message.add_reaction('✔')
 
-        if message.content == "??nextgame":
+        elif cparams[0] == "nextgame":
             output = "TBD"
 
             resp = requests.get(
@@ -129,25 +149,28 @@ class ScheduleReporter(discord.Client):
                     datetime.fromisoformat(event['date']), "%A, %B %d, %I:%M %p"), current_teams[event['teams'][0]], current_teams[event['teams'][1]]))
 
             await message.channel.send(output)
+            await message.add_reaction('✔')
 
-        if message.content.startswith("??setScheduleChannel"):
-            tier = message.content.split(" ")[1]
+        elif cparams[0] == "setScheduleChannel":
+            tier = cparams[1]
             output = "Setting Tier {} channel to id {}".format(
                 tier, message.channel.id)
             config['Tier{}ScheduleChannel'.format(tier)] = message.channel.id
             save_config(config)
             await message.channel.send(output)
+            await message.add_reaction('✔')
 
-        if message.content.startswith("??setTierId"):
-            tier = message.content.split(" ")[1]
-            id = message.content.split(" ")[2]
+        elif cparams[0] == "setTierId":
+            tier = cparams[1]
+            id = cparams[2]
             output = "Setting configuration value {} to {}".format(
                 'Tier{}SeasonId'.format(tier), id)
             config['Tier{}SeasonId'.format(tier)] = id
             save_config(config)
             await message.channel.send(output)
+            await message.add_reaction('✔')
 
-        if message.content.startswith("??reportScheduleConfiguration"):
+        elif cparams[0] == "reportScheduleConfiguration":
             output = "Channels:\r\nTier 1: {}\r\nTier 2: {}\r\nTier 3: {}\r\nTier 4: {}\r\nTier 5: {}".format(
                 config['Tier1ScheduleChannel'], config['Tier2ScheduleChannel'], config['Tier3ScheduleChannel'], config['Tier4ScheduleChannel'], config['Tier5ScheduleChannel'])
             output += "\r\nLeague Ids:\r\nTier 1: {}\r\nTier 2: {}\r\nTier 3: {}\r\nTier 4: {}\r\nTier 5: {}".format(
@@ -159,9 +182,10 @@ class ScheduleReporter(discord.Client):
                     }
             embed = discord.Embed.from_dict(data)
             await message.channel.send(content=None, embed=embed)
+            await message.add_reaction('✔')
 
-        if message.content.startswith("??reportWeekGames"):
-            week = message.content.split(" ")[1]
+        elif cparams[0] == "reportWeekGames":
+            week = cparams[1]
 
             tier = 1
             while tier < 5:
@@ -170,12 +194,28 @@ class ScheduleReporter(discord.Client):
 
             output = "Sent schedules for week {}".format(week)
             await message.channel.send(output)
+            await message.add_reaction('✔')
+
+        elif cparams[0] == "help":
+            fields = []
+            fields.append({"name": "= Command List = (??)", 
+                "value": "**currentteams**\r\n**setScheduleChannel**\r\n**setTierId**\r\n**reportScheduleConfiguration**\r\n**reportWeekGames**\r\n",})
+            data = {"fields": fields}
+            embed = discord.Embed.from_dict(data)
+            await message.channel.send(content=None, embed=embed)
+            await message.add_reaction('✔')
+
+        else: 
+            await message.add_reaction('❌')
 
 logging.basicConfig(level=logging.INFO)
 
 load_config()
 current_teams = get_current_season_teams()
 get_all_events()
+config["CurrentEvents"] = current_events
+config["CuurentTeams"] = current_teams
+save_config(config)
 client = ScheduleReporter()
 token = os.environ.get("BOT_TOKEN")
 client.run(token)
