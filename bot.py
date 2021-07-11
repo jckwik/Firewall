@@ -28,7 +28,7 @@ config = {
     "CurrentTeams": current_teams,
     "CurrentEvents": current_events,
 }
-authorized_roles = ['〈 👑 〉 Owner', '〈 🛠️ 〉 League Director', '〈 🔮 〉 Chief Operating Officer', '〈 👾 〉 League Commissioner']
+authorized_roles = ['〈 👑 〉 Owner', '〈 🛠️ 〉 League Director', '〈 👾 〉 League Commissioner']
 
 def get_current_season_teams():
     resp = requests.get(
