@@ -20,6 +20,7 @@ config = {
     "Tier3ScheduleChannel": 0,
     "Tier4ScheduleChannel": 0,
     "Tier5ScheduleChannel": 0,
+    "DailyScheduleChannel": 0,
     "Tier1SeasonId": 0,
     "Tier2SeasonId": 0,
     "Tier3SeasonId": 0,
@@ -151,6 +152,9 @@ class ScheduleReporter(discord.Client):
 
     # go through all of the current events, find all that have a date today, and post them to the channel
     async def report_today_event(self, newMessage=False):
+        if config['DailyScheduleChannel'] == 0:
+            logger.warn("Daily schedule channel not set in config, skipping daily schedule posting")
+            return
         fields = []
 
         for event in current_events:
@@ -232,13 +236,17 @@ class ScheduleReporter(discord.Client):
             await message.add_reaction('✔')
 
         elif cparams[0] == "reportScheduleConfiguration":
-            output = "Channels:\r\nTier 1: {}\r\nTier 2: {}\r\nTier 3: {}\r\nTier 4: {}\r\nTier 5: {}\r\nDaily: {}".format(
-                config['Tier1ScheduleChannel'], config['Tier2ScheduleChannel'], config['Tier3ScheduleChannel'], config['Tier4ScheduleChannel'], config['Tier5ScheduleChannel'], config['DailyScheduleChannel'])
-            output += "\r\nLeague Ids:\r\nTier 1: {}\r\nTier 2: {}\r\nTier 3: {}\r\nTier 4: {}\r\nTier 5: {}".format(
-                config['Tier1SeasonId'], config['Tier2SeasonId'], config['Tier3SeasonId'], config['Tier4SeasonId'], config['Tier5SeasonId'])
-            output += "\r\nCurrent Season: {}".format(current_season)
-            output += "\r\nCurrent Week: {}".format(config['CurrentWeek'])
-            output += "\r\nCurrent User: {}".format(message.author.roles)
+            try:
+                output = "Channels:\r\nTier 1: {}\r\nTier 2: {}\r\nTier 3: {}\r\nTier 4: {}\r\nTier 5: {}\r\nDaily: {}".format(
+                    config['Tier1ScheduleChannel'], config['Tier2ScheduleChannel'], config['Tier3ScheduleChannel'], config['Tier4ScheduleChannel'], config['Tier5ScheduleChannel'], config['DailyScheduleChannel'])
+                output += "\r\nLeague Ids:\r\nTier 1: {}\r\nTier 2: {}\r\nTier 3: {}\r\nTier 4: {}\r\nTier 5: {}".format(
+                    config['Tier1SeasonId'], config['Tier2SeasonId'], config['Tier3SeasonId'], config['Tier4SeasonId'], config['Tier5SeasonId'])
+                output += "\r\nCurrent Season: {}".format(current_season)
+                output += "\r\nCurrent Week: {}".format(config['CurrentWeek'])
+                output += "\r\nCurrent User: {}".format(message.author.roles)
+            except Exception as e: 
+                logger.error(e)
+                output = f"Error getting configuration data: {e}."
             data = {"title": "Schedule Configuration",
                     "fields": [{"name": "Configuration",
                                 "value": output, }]
