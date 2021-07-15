@@ -212,19 +212,6 @@ class ScheduleReporter(discord.Client):
             await message.channel.send(output)
             await message.add_reaction('✔')
 
-        elif cparams[0] == "nextgame":
-            output = "TBD"
-
-            resp = requests.get(
-                "https://firewallesports.com/wp-json/sportspress/v2/events?per_page=1&orderby=date&order=desc")
-
-            for event in resp.json():
-                output += "\r\n" + ('({}) {}, {}: {} VS {}'.format(event['id'], event['title']['rendered'], datetime.strftime(
-                    datetime.fromisoformat(event['date']), "%A, %B %d, %I:%M %p"), current_teams[event['teams'][0]], current_teams[event['teams'][1]]))
-
-            await message.channel.send(output)
-            await message.add_reaction('✔')
-
         elif cparams[0] == "setScheduleChannel":
             tier = cparams[1]
             output = "Setting Tier {} channel to id {}".format(
