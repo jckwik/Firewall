@@ -14,6 +14,7 @@ __location__ = os.path.realpath(os.path.join(
 current_season = 25
 current_teams = {0: "Unknown or undefined team"}
 current_events = {}
+current_players = {}
 config = {
     "Tier1ScheduleChannel": 0,
     "Tier2ScheduleChannel": 0,
@@ -30,6 +31,7 @@ config = {
     "CurrentWeek": 0,
     "CurrentTeams": current_teams,
     "CurrentEvents": current_events,
+    "CurrentPlayers": current_players,
 }
 authorized_roles = ['〈 👑 〉 Owner',
                     '〈 🛠️ 〉 League Director', '〈 👾 〉 League Commissioner']
@@ -60,6 +62,19 @@ def get_all_events():
         total_event_number = resp.headers['X-WP-Total']
         event_loop_count += 100
 
+def get_all_players():
+    player_loop_count = 0
+    total_player_number = 1
+
+    while player_loop_count < int(total_player_number):
+        resp = requests.get(
+            "https://firewallesports.com/wp-json/sportspress/v2/players?per_page=100&offset={}".format(player_loop_count))
+        for event in resp.json():
+            current_events[event['id']] = event
+
+        total_player_number = resp.headers['X-WP-Total']
+        player_loop_count += 100
+
 
 def load_config():
     if (os.path.exists(__location__+"\\fwScheduleConfig.json")):
@@ -86,8 +101,10 @@ def refresh_data():
     global current_season, current_teams, current_events, config
     current_teams = get_current_season_teams()
     get_all_events()
+    get_all_players()
     config["CurrentEvents"] = current_events
     config["CurrentTeams"] = current_teams
+    config["CurrentPlayers"] = current_players
     save_config(config)
 
 intents = discord.Intents.all()
@@ -96,11 +113,11 @@ bot = commands.Bot(command_prefix='??', description="Firewall Schedule Bot", int
 
 @bot.event
 async def on_ready():
-    daily_refresh.start()
     print('Logged on as ', bot.user.name)
     save_config(config)
     activity = discord.Activity(
         name="??help", type=discord.ActivityType.playing)
+    daily_refresh.start()
     await bot.change_presence(activity=activity)
 
 async def report_week_tier(tier, week, newMessage=False):
@@ -180,18 +197,49 @@ async def report_today_event(self, newMessage=False):
         config[message_configuration] = message.id
         save_config(config)
 
+async def success_reaction(ctx):
+    await ctx.message.add_reaction('✔')
+
+async def error_reaction(ctx):
+    await ctx.message.add_reaction('❌')
+
+async def before_reaction(ctx):
+    await ctx.message.add_reaction('⏳')
+
+@bot.on_command_error
+async def on_command_error(ctx, exception):
+    if isinstance(exception, commands.CheckFailure):
+        await ctx.channel.send("You don't have permission to use that command")
+    elif isinstance(exception, commands.MissingRequiredArgument):
+        await ctx.channel.send("Missing argument")
+    elif isinstance(exception, commands.BadArgument):
+        await ctx.channel.send("Bad Argument")
+    elif isinstance(exception, commands.CommandInvokeError):
+        await ctx.channel.send("Command Error")
+    elif isinstance(exception, commands.CommandOnCooldown):
+        await ctx.channel.send("Command on cooldown")
+    else:
+        await ctx.channel.send("Unknown Error")
+    error_reaction(ctx)
+
 @bot.command()
 async def ping(ctx):
     await ctx.channel.send('pong')
     
 @bot.command()
+@commands.has_any_role('〈 👑 〉 Owner', '〈 🛠️ 〉 League Director', '〈 👾 〉 League Commissioner')
+@commands.after_invoke(success_reaction)
+@commands.before_invoke(before_reaction)
 async def currentTeams(ctx):
     teams = config['CurrentTeams']
     output = ""
     for team in teams:
         output += "\r\n{}".format(teams[team])
     await ctx.channel.send(output)
-    await ctx.message.add_reaction('✔')
+
+@currentTeams.error
+async def currentTeams_error(ctx, error):
+    error_output(ctx, error)
 
 @bot.command()
 async def setScheduleChannel(ctx, tier: int, channel: discord.TextChannel):
