@@ -1,4 +1,8 @@
 fwScheduleBot/fwScheduleConfig.json
-fwScheduleBot/.env
+fwScheduleBot/config.json
 .vscode/launch.json
 fwScheduleBot/discord.log
+fwScheduleBot/node_modules
+.env
+fwScheduleBot/built
+fwScheduleConfig.json
