@@ -2,6 +2,7 @@ import { FirewallBot } from './bot.js';
 import { Client, Collection, Intents } from "discord.js";
 const appconfig = require('dotenv').config();
 import * as fs from 'fs';
+import { CronJob } from 'cron';
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
@@ -28,13 +29,15 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
   console.log(
-    `${interaction.user.tag} in #${interaction.channel.name} triggered an interaction.`
+    `${interaction.user.tag} in #${interaction.channel.name} (${interaction.channelId}) triggered an interaction.`
   );
-  console.log(interaction);
-
   const command = client.commands.get(interaction.commandName);
 
   if (!command) return;
+  if (interaction.member.roles.cache.some(role =>
+     role.name === "〈 👑 〉 Owner"
+    || role.name === "〈 🛠️ 〉 League Director"
+    || role.name === "〈 👾 〉 League Commissioner")) {
 
   try {
     await command.execute(interaction);
@@ -45,9 +48,24 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: true,
     });
   }
+}
+else
+{
+  await interaction.reply({
+    content: "You do not have permission to use this command!",
+    ephemeral: true,
+  });
+}
 });
 
-const bot = FirewallBot.Instance();
-console.log(bot);
+const bot = FirewallBot.Instance(client);
+console.log(bot.config);
 
 client.login(appconfig.parsed.BOT_TOKEN);
+
+const dailyJob = new CronJob('0 0 1 * * *', async function() {
+  await bot.refresh_data();
+  await bot.reportDayGames();
+});
+
+dailyJob.start();

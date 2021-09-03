@@ -4,20 +4,14 @@ import { clientId, guildId } from './config.json';
 const appconfig = require('dotenv').config();
 import { readdirSync } from 'fs';
 
-const commandFiles = readdirSync('./fwScheduleBot/commands').filter(file => file.endsWith('.js'));
+const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
 const commands = [];
-// 	new SlashCommandBuilder()
-// 		.setName('current_teams')
-// 		.setDescription('Lists all current teams'),
 // 	new SlashCommandBuilder()
 // 		.setName('set_schedule_channel')
 // 		.setDescription('Set schedule channel'),
 // 	new SlashCommandBuilder()
 // 		.setName('set_tier_id')
 // 		.setDescription('Set tier id config'),
-// 	new SlashCommandBuilder()
-// 		.setName('report_schedule_configuration')
-// 		.setDescription('Report configuration'),
 // 	new SlashCommandBuilder()
 // 		.setName('report_week_games')
 // 		.setDescription('Send schedule for week games'),
