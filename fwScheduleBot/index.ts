@@ -1,10 +1,14 @@
 import { FirewallBot } from './bot.js';
-import { Client, Collection, Intents } from "discord.js";
+import { Client, ClientApplication, Collection, Intents } from "discord.js";
 const appconfig = require('dotenv').config();
 import * as fs from 'fs';
 import { CronJob } from 'cron';
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+interface IClient extends Client {
+    commands?: Collection<string, any>;
+}
+
+const client:IClient = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
 client.commands = new Collection();
 const commandFiles = fs
@@ -28,13 +32,15 @@ for (const file of eventFiles) {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
+  const channel = interaction.channel as any;
   console.log(
-    `${interaction.user.tag} in #${interaction.channel.name} (${interaction.channelId}) triggered an interaction.`
+    `${interaction.user.tag} in #${channel.name} (${interaction.channelId}) triggered an interaction.`
   );
   const command = client.commands.get(interaction.commandName);
 
   if (!command) return;
-  if (interaction.member.roles.cache.some(role =>
+  const roles = interaction.member.roles as any;
+  if (roles.cache.some(role =>
      role.name === "〈 👑 〉 Owner"
     || role.name === "〈 🛠️ 〉 League Director"
     || role.name === "〈 👾 〉 League Commissioner")) {

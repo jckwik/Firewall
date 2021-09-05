@@ -1,20 +1,49 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "type": "typescript",
-        "tsconfig": "./fwScheduleBot/tsconfig.json",
-        "problemMatcher": ["$tsc"],
-        "label": "typescript compile",
-        "options": {
-            "cwd": "${workspaceFolder}"
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        }
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "typescript",
+      "tsconfig": "./fwScheduleBot/tsconfig.dev.json",
+      "problemMatcher": ["$tsc"],
+      "label": "typescript compile",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "focus": false,
+        "showReuseMessage": false,
+        "clear": true
       }
-    ]
-  }
+    },
+    {
+      "label": "Production Build",
+      "type": "typescript",
+      "tsconfig": "./fwScheduleBot/tsconfig.prod.json",
+      "problemMatcher": ["$tsc"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "focus": false,
+        "showReuseMessage": false,
+        "clear": true
+      }
+    }
+  ]
+}

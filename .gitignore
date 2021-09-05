@@ -5,4 +5,5 @@ fwScheduleBot/discord.log
 fwScheduleBot/node_modules
 .env
 fwScheduleBot/built
+fwScheduleBot/production
 fwScheduleConfig.json

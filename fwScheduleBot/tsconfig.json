@@ -1,13 +1,13 @@
 {
     "compilerOptions": {
-        "outDir": "./built",
         "allowJs": true,
+        "checkJs": true,
         "target": "ES2021",
         "moduleResolution": "node",
         "module": "CommonJS",
         "resolveJsonModule": true,
         "sourceMap": true
     },
-    "include": ["./**/*"],
-    
+    "include": ["./commands/*", "./events/*"],
+    "files": ["bot.ts", "deploy-commands.ts", "index.ts"]
 }

@@ -21,9 +21,9 @@ class FirewallBot {
       Tier5TeamMax: 4250,
       ListCache: [] as Team[],
     };
-    this.config = JSON.parse(
+    this.config = Object.assign(this.config, JSON.parse(
       fs.readFileSync("./fwScheduleconfig.json", "utf8")
-    );
+    ));
     this.get_current_season_teams();
     this.get_all_events();
     this.get_all_players();
@@ -153,7 +153,6 @@ class FirewallBot {
   }
 
   async get_team_sr_average(
-    list_id: number,
     team_players: Player[]
   ): Promise<number> {
     const team_srs = await this.get_srs_from_player_list(team_players);
@@ -183,6 +182,7 @@ class FirewallBot {
   cache_list_name(id: number, name: string) {
     if (!this.config.ListCache.find((t) => t.id === id)) {
       this.config.ListCache.push({ id: id, name: name });
+      this.saveConfig();
     } else {
       this.config.ListCache.find((t) => t.id === id).name = name;
     }
@@ -272,7 +272,7 @@ class FirewallBot {
   };
 }
 
-interface ScheduleBotConfig {
+interface ScheduleBotConfig extends Record<string, any>{
   Tier1ScheduleChannel?: string;
   Tier2ScheduleChannel?: string;
   Tier3ScheduleChannel?: string;
