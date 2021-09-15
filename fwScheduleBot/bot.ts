@@ -21,9 +21,10 @@ class FirewallBot {
       Tier5TeamMax: 4250,
       ListCache: [] as Team[],
     };
-    this.config = Object.assign(this.config, JSON.parse(
-      fs.readFileSync("./fwScheduleconfig.json", "utf8")
-    ));
+    this.config = Object.assign(
+      this.config,
+      JSON.parse(fs.readFileSync("./fwScheduleconfig.json", "utf8"))
+    );
     this.get_current_season_teams();
     this.get_all_events();
     this.get_all_players();
@@ -39,7 +40,7 @@ class FirewallBot {
 
   saveConfig = () => {
     fs.writeFileSync("./fwScheduleconfig.json", JSON.stringify(this.config));
-  }
+  };
 
   async get_current_season_teams() {
     const url = `https://firewallesports.com/wp-json/sportspress/v2/teams?_fields=title,id&per_page=100&seasons=${this.config.CurrentSeason}`;
@@ -152,15 +153,14 @@ class FirewallBot {
     return srs;
   }
 
-  async get_team_sr_average(
-    team_players: Player[]
-  ): Promise<number> {
+  async get_team_sr_average(team_players: Player[]): Promise<number> {
     const team_srs = await this.get_srs_from_player_list(team_players);
     team_srs.sort((a, b) => b - a);
     while (team_srs.indexOf(0) !== -1) team_srs.splice(team_srs.indexOf(0));
-    team_srs.slice(0, 7);
+    const team_srs_for_average = team_srs.slice(0, 7);
     const team_sr_average =
-      team_srs.reduce((a, b) => a + b, 0) / team_srs.length;
+      team_srs_for_average.reduce((a, b) => a + b, 0) /
+      team_srs_for_average.length;
     return team_sr_average;
   }
 
@@ -201,12 +201,8 @@ class FirewallBot {
         title: { rendered: "Test Event" },
         date: new Date("2021-07-04T19:00:00"),
         teams: [4315, 4253],
-      },
-      {
-        id: "2",
-        title: { rendered: "Test Event 2" },
-        date: new Date("2021-09-02T19:00:00"),
-        teams: [4322, 4043],
+        leagues: [10],
+        day: "0",
       },
     ];
     const day_games = current_events.filter(
@@ -222,7 +218,9 @@ class FirewallBot {
       embed.addField(game_embed.fields[0].name, game_embed.fields[0].value);
     }
 
-    console.log("Daily Schedule Channel Id: " + this.config.DailyScheduleChannel);
+    console.log(
+      "Daily Schedule Channel Id: " + this.config.DailyScheduleChannel
+    );
     const channel = FirewallBot._client.channels.cache.get(
       this.config.DailyScheduleChannel
     ) as TextChannel;
@@ -241,20 +239,21 @@ class FirewallBot {
         return false;
       }
     } else {
-      channel.messages.fetch(this.config.DailyScheduleMessage)
-      .then((m) => {
-        m.edit({ embeds: [embed] });
-      })
-      .catch(async (error) => {
-        try {
-          console.warn("Failed to find daily schedule message - resending");
-          const message = await channel.send({ embeds: [embed] });
-          this.config.DailyScheduleMessage = message.id;
-        } catch (error) {
-          console.log(error);
-          return false;
-        }
-      });
+      channel.messages
+        .fetch(this.config.DailyScheduleMessage)
+        .then((m) => {
+          m.edit({ embeds: [embed] });
+        })
+        .catch(async (error) => {
+          try {
+            console.warn("Failed to find daily schedule message - resending");
+            const message = await channel.send({ embeds: [embed] });
+            this.config.DailyScheduleMessage = message.id;
+          } catch (error) {
+            console.log(error);
+            return false;
+          }
+        });
       return true;
     }
   }
@@ -263,16 +262,141 @@ class FirewallBot {
     const embed = new MessageEmbed();
 
     const teams = event.teams.map((t) => this.get_team_name_by_id(t));
-    embed.addField(
-      teams.join(" VS "),
-      `${event.date.toString()}: ${teams.join(" VS ")}`
-    );
 
+    if (!event.winner) {
+      embed.addField(
+        teams.join(" VS "),
+        `${event.date.toString()}: ${teams.join(" VS ")}`
+      );
+    } else {
+      const winnerIndex = event.teams.indexOf(event.winner);
+      //index is always 0 or 1, so we can check falsy values to see which score to put where
+      if (winnerIndex) {
+        embed.addField(
+          teams.join(" VS "),
+          `Winner: ${this.get_team_name_by_id(event.winner)}: ${
+            event.main_results[1]
+          } - ${event.main_results[0]}`
+        );
+      } else {
+        embed.addField(
+          teams.join(" VS "),
+          `Winner: ${this.get_team_name_by_id(event.winner)}: ${
+            event.main_results[0]
+          } - ${event.main_results[1]}`
+        );
+      }
+    }
     return embed;
   };
+
+  async reportWeekGames(tier: number, newMessage: boolean = false) {
+    const scheduleChannel = this.config[`Tier${tier}ScheduleChannel`];
+    const tierId = this.config[`Tier${tier}SeasonId`];
+    const current_week = this.config.CurrentWeek;
+    if (!scheduleChannel) {
+      console.warn(`Schedule channel tier ${tier} not set - failing`);
+      return false;
+    }
+
+    //const current_events = this.config.CurrentEvents;
+    const current_events = [
+      {
+        id: "1",
+        title: { rendered: "Test Event" },
+        date: new Date("2021-07-04T19:00:00"),
+        leagues: [10],
+        day: "0",
+        teams: [3850, 4041],
+        main_results: ["3", "2"],
+        outcome: {
+          "3850": "win",
+          "4041": "loss",
+        },
+        winner: 3850,
+      },
+      {
+        id: "2",
+        title: { rendered: "Test Event 2" },
+        date: new Date("2021-09-02T19:00:00"),
+        teams: [4322, 4043],
+        leagues: [9],
+        day: "1",
+        main_results: [],
+        winner: null,
+      },
+    ];
+    const week_games = current_events.filter(
+      (e) => e.day === current_week.toString() && e.leagues.includes(tierId)
+    );
+
+    const embed = new MessageEmbed()
+      .setTitle(`Week ${current_week} Games`)
+      .setTimestamp();
+
+    for (const game of week_games) {
+      const game_embed = this.build_event_output_embed(game as FWEvent);
+      embed.addField(game_embed.fields[0].name, game_embed.fields[0].value);
+    }
+
+    if (week_games.length === 0) {
+      embed.addField("No games this week", "No games this week");
+    }
+
+    console.log(`Tier ${tier} Schedule Channel Id: ` + scheduleChannel);
+    const channel = FirewallBot._client.channels.cache.get(
+      scheduleChannel
+    ) as TextChannel;
+    if (!channel) {
+      console.log("Channel not found");
+      return false;
+    }
+
+    const messageId =
+      this.config[`Tier${tier}Week${current_week}ScheduleMessage`];
+    if (newMessage) {
+      try {
+        const message = await channel.send({ embeds: [embed] });
+        this.config[`Tier${tier}Week${current_week}ScheduleMessage`] =
+          message.id;
+        this.saveConfig();
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
+    } else {
+      channel.messages
+        .fetch(messageId)
+        .then((m) => {
+          m.edit({ embeds: [embed] });
+        })
+        .catch(async (error) => {
+          try {
+            console.warn("Failed to find daily schedule message - resending");
+            const message = await channel.send({ embeds: [embed] });
+            this.config[`Tier${tier}Week${current_week}ScheduleMessage`] =
+              message.id;
+          } catch (error) {
+            console.error(error);
+            return false;
+          }
+        });
+      return true;
+    }
+  }
+
+  async reportAllWeekGames(currentWeek?: number, newMessage: boolean = false) {
+    if (!currentWeek) {
+      currentWeek = this.config.CurrentWeek;
+      this.saveConfig();
+    }
+    for (let i = 1; i <= 5; i++) {
+      await this.reportWeekGames(i, newMessage);
+    }
+  }
 }
 
-interface ScheduleBotConfig extends Record<string, any>{
+interface ScheduleBotConfig extends Record<string, any> {
   Tier1ScheduleChannel?: string;
   Tier2ScheduleChannel?: string;
   Tier3ScheduleChannel?: string;
@@ -309,19 +433,20 @@ interface Team {
   roleid?: number;
 }
 
-interface FWEvent {
+interface FWEvent extends Record<string, any> {
   id: string;
   date: Date;
-  link: string;
+  link?: string;
   title: {
     rendered: string;
   };
-  leagues: number[];
-  seasons: number[];
+  leagues?: number[];
+  seasons?: number[];
   teams: number[];
   main_results: string[];
   outcome: string[];
   winner: number;
+  day: string;
 }
 
 interface Player {

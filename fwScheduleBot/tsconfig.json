@@ -9,5 +9,6 @@
         "sourceMap": true
     },
     "include": ["./commands/*", "./events/*"],
-    "files": ["bot.ts", "deploy-commands.ts", "index.ts"]
+    "files": ["bot.ts", "deploy-commands.ts", "index.ts"],
+    "exclude": ["config.json"]
 }

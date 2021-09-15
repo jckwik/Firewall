@@ -1,16 +1,17 @@
- {
+[
+  {
     "id": 3456,
     "date": "2021-07-04T19:00:00",
     "date_gmt": "2021-06-26T18:00:34",
     "guid": {
-      "rendered": "https:\/\/firewallesports.com\/event\/assassins\/"
+      "rendered": "https://firewallesports.com/event/assassins/"
     },
     "modified": "2021-06-09T16:15:50",
     "modified_gmt": "2021-06-09T20:15:50",
     "slug": "assassins",
     "status": "publish",
     "type": "sp_event",
-    "link": "https:\/\/firewallesports.com\/event\/assassins\/",
+    "link": "https://firewallesports.com/event/assassins/",
     "title": {
       "rendered": "Assassins"
     },
@@ -25,21 +26,11 @@
     "author": 5,
     "featured_media": 0,
     "template": "",
-    "leagues": [
-      10
-    ],
-    "seasons": [
-      25
-    ],
+    "leagues": [10],
+    "seasons": [25],
     "venues": [],
-    "teams": [
-      1714,
-      1517
-    ],
-    "main_results": [
-      "0",
-      "4"
-    ],
+    "teams": [1714, 1517],
+    "main_results": ["0", "4"],
     "outcome": {
       "1714": "loss",
       "1517": "win"
@@ -54,15 +45,11 @@
     "results": {
       "1714": {
         "mapscore": "0",
-        "outcome": [
-          "loss"
-        ]
+        "outcome": ["loss"]
       },
       "1517": {
         "mapscore": "4",
-        "outcome": [
-          "win"
-        ]
+        "outcome": ["win"]
       },
       "0": {
         "mapscore": "Map Score",
@@ -77,53 +64,172 @@
     "_links": {
       "self": [
         {
-          "href": "https:\/\/firewallesports.com\/wp-json\/sportspress\/v2\/events\/3456"
+          "href": "https://firewallesports.com/wp-json/sportspress/v2/events/3456"
         }
       ],
       "collection": [
         {
-          "href": "https:\/\/firewallesports.com\/wp-json\/sportspress\/v2\/events"
+          "href": "https://firewallesports.com/wp-json/sportspress/v2/events"
         }
       ],
       "about": [
         {
-          "href": "https:\/\/firewallesports.com\/wp-json\/wp\/v2\/types\/sp_event"
+          "href": "https://firewallesports.com/wp-json/wp/v2/types/sp_event"
         }
       ],
       "author": [
         {
           "embeddable": true,
-          "href": "https:\/\/firewallesports.com\/wp-json\/wp\/v2\/users\/5"
+          "href": "https://firewallesports.com/wp-json/wp/v2/users/5"
         }
       ],
       "wp:attachment": [
         {
-          "href": "https:\/\/firewallesports.com\/wp-json\/wp\/v2\/media?parent=3456"
+          "href": "https://firewallesports.com/wp-json/wp/v2/media?parent=3456"
         }
       ],
       "wp:term": [
         {
           "taxonomy": "sp_league",
           "embeddable": true,
-          "href": "https:\/\/firewallesports.com\/wp-json\/wp\/v2\/leagues?post=3456"
+          "href": "https://firewallesports.com/wp-json/wp/v2/leagues?post=3456"
         },
         {
           "taxonomy": "sp_season",
           "embeddable": true,
-          "href": "https:\/\/firewallesports.com\/wp-json\/wp\/v2\/seasons?post=3456"
+          "href": "https://firewallesports.com/wp-json/wp/v2/seasons?post=3456"
         },
         {
           "taxonomy": "sp_venue",
           "embeddable": true,
-          "href": "https:\/\/firewallesports.com\/wp-json\/wp\/v2\/venues?post=3456"
+          "href": "https://firewallesports.com/wp-json/wp/v2/venues?post=3456"
         }
       ],
       "curies": [
         {
           "name": "wp",
-          "href": "https:\/\/api.w.org\/{rel}",
+          "href": "https://api.w.org/{rel}",
+          "templated": true
+        }
+      ]
+    }
+  },
+
+  {
+    "id": 4633,
+    "date": "2021-09-13T20:00:58",
+    "date_gmt": "2021-09-14T00:00:58",
+    "guid": {
+      "rendered": "https://firewallesports.com/?post_type=sp_event&#038;p=4633"
+    },
+    "modified": "2021-09-11T17:54:57",
+    "modified_gmt": "2021-09-11T21:54:57",
+    "slug": "breakout-vs-illusion-revolution",
+    "status": "future",
+    "type": "sp_event",
+    "link": "https://firewallesports.com/?post_type=sp_event&p=4633",
+    "title": {
+      "rendered": "Breakout vs Illusion Revolution"
+    },
+    "content": {
+      "rendered": "",
+      "protected": false
+    },
+    "excerpt": {
+      "rendered": "",
+      "protected": false
+    },
+    "author": 5,
+    "featured_media": 0,
+    "template": "",
+    "leagues": [],
+    "seasons": [],
+    "venues": [],
+    "teams": [3850, 4041],
+    "main_results": ["3", "2"],
+    "outcome": {
+      "3850": "win",
+      "4041": "loss"
+    },
+    "winner": 3850,
+    "day": "0",
+    "minutes": "90",
+    "players": [0, 0],
+    "offense": [],
+    "defense": [],
+    "staff": [0, 0],
+    "results": {
+      "3850": {
+        "mapscore": "3",
+        "roundscore": "",
+        "outcome": ["win"]
+      },
+      "4041": {
+        "mapscore": "2",
+        "roundscore": "",
+        "outcome": ["loss"]
+      },
+      "0": {
+        "mapscore": "Map Score",
+        "outcome": "Outcome"
+      }
+    },
+    "performance": [
+      {
+        "position": "Position"
+      }
+    ],
+    "_links": {
+      "self": [
+        {
+          "href": "https://firewallesports.com/wp-json/sportspress/v2/events/4633"
+        }
+      ],
+      "collection": [
+        {
+          "href": "https://firewallesports.com/wp-json/sportspress/v2/events"
+        }
+      ],
+      "about": [
+        {
+          "href": "https://firewallesports.com/wp-json/wp/v2/types/sp_event"
+        }
+      ],
+      "author": [
+        {
+          "embeddable": true,
+          "href": "https://firewallesports.com/wp-json/wp/v2/users/5"
+        }
+      ],
+      "wp:attachment": [
+        {
+          "href": "https://firewallesports.com/wp-json/wp/v2/media?parent=4633"
+        }
+      ],
+      "wp:term": [
+        {
+          "taxonomy": "sp_league",
+          "embeddable": true,
+          "href": "https://firewallesports.com/wp-json/wp/v2/leagues?post=4633"
+        },
+        {
+          "taxonomy": "sp_season",
+          "embeddable": true,
+          "href": "https://firewallesports.com/wp-json/wp/v2/seasons?post=4633"
+        },
+        {
+          "taxonomy": "sp_venue",
+          "embeddable": true,
+          "href": "https://firewallesports.com/wp-json/wp/v2/venues?post=4633"
+        }
+      ],
+      "curies": [
+        {
+          "name": "wp",
+          "href": "https://api.w.org/{rel}",
           "templated": true
         }
       ]
     }
   }
+]
