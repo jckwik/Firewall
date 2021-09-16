@@ -1,6 +1,7 @@
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 import fs = require("fs");
 const axios = require("axios").default;
+import dateFormat = require("dateformat");
 
 class FirewallBot {
   private static _instance: FirewallBot;
@@ -211,11 +212,16 @@ class FirewallBot {
 
     const embed = new MessageEmbed()
       .setTitle(`Today's Games: ${new Date().toDateString()}`)
-      .setTimestamp();
+      .setTimestamp()
+      .setFooter(`Firewall Season 5`);
 
     for (const game of day_games) {
       const game_embed = this.build_event_output_embed(game as FWEvent);
       embed.addField(game_embed.fields[0].name, game_embed.fields[0].value);
+    }
+
+    if (day_games.length === 0) {
+      embed.addField("No games today", "No games today");
     }
 
     console.log(
@@ -267,7 +273,7 @@ class FirewallBot {
     if (!event.winner) {
       embed.addField(
         teams.join(" VS "),
-        `${event.date.toString()}: ${teams.join(" VS ")}`
+        `${dateFormat(event.date, "ddd mmm dd yyyy HH:MM:ss Z")}: ${teams.join(" VS ")}`
       );
     } else {
       const winnerIndex = event.teams.indexOf(event.winner);
@@ -303,12 +309,15 @@ class FirewallBot {
     const current_events = this.config.CurrentEvents;
 
     const week_games = current_events.filter(
-      (e) => e.day === current_week.toString() && e.leagues.includes(tierId)
+      (e) =>
+        e.day === current_week.toString() &&
+        e.leagues.some((r) => tierId.includes(r))
     );
 
     const embed = new MessageEmbed()
       .setTitle(`Week ${current_week} Games`)
-      .setTimestamp();
+      .setTimestamp()
+      .setFooter(`Firewall Season 5`);
 
     for (const game of week_games) {
       const game_embed = this.build_event_output_embed(game as FWEvent);
@@ -328,35 +337,32 @@ class FirewallBot {
       return false;
     }
 
-    const messageId =
-      this.config[`Tier${tier}Week${current_week}ScheduleMessage`];
+    const messageConfigName = `Tier${tier}Week${current_week}ScheduleMessage`;
+    const messageId = this.config[messageConfigName];
     if (newMessage) {
       try {
         const message = await channel.send({ embeds: [embed] });
-        this.config[`Tier${tier}Week${current_week}ScheduleMessage`] =
-          message.id;
+        this.config[messageConfigName] = message.id;
         this.saveConfig();
       } catch (error) {
         console.error(error);
         return false;
       }
     } else {
-      channel.messages
-        .fetch(messageId)
-        .then((m) => {
-          m.edit({ embeds: [embed] });
-        })
-        .catch(async (error) => {
-          try {
-            console.warn("Failed to find daily schedule message - resending");
-            const message = await channel.send({ embeds: [embed] });
-            this.config[`Tier${tier}Week${current_week}ScheduleMessage`] =
-              message.id;
-          } catch (error) {
-            console.error(error);
-            return false;
-          }
-        });
+      const message = await channel.messages.fetch(messageId);
+      try {
+        await message.edit({ embeds: [embed] });
+      } catch (error) {
+        console.log(error);
+        try {
+          console.warn("Failed to find tier schedule message - resending");
+          const message = await channel.send({ embeds: [embed] });
+          this.config[messageConfigName] = message.id;
+        } catch (error) {
+          console.log(error);
+          return false;
+        }
+      }
       return true;
     }
   }
@@ -364,11 +370,16 @@ class FirewallBot {
   async reportAllWeekGames(currentWeek?: number, newMessage: boolean = false) {
     if (!currentWeek) {
       currentWeek = this.config.CurrentWeek;
-      this.saveConfig();
     }
     for (let i = 1; i <= 5; i++) {
-      await this.reportWeekGames(i, newMessage);
+      try {
+        await this.reportWeekGames(i, newMessage);
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
     }
+    return true;
   }
 }
 
@@ -380,11 +391,11 @@ interface ScheduleBotConfig extends Record<string, any> {
   Tier5ScheduleChannel?: string;
   DailyScheduleChannel?: string;
   DailyScheduleMessage?: string;
-  Tier1SeasonId?: number;
-  Tier2SeasonId?: number;
-  Tier3SeasonId?: number;
-  Tier4SeasonId?: number;
-  Tier5SeasonId?: number;
+  Tier1SeasonId?: number[];
+  Tier2SeasonId?: number[];
+  Tier3SeasonId?: number[];
+  Tier4SeasonId?: number[];
+  Tier5SeasonId?: number[];
   Tier1PlayerMax?: number;
   Tier2PlayerMax?: number;
   Tier3PlayerMax?: number;

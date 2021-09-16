@@ -72,6 +72,7 @@ client.login(appconfig.parsed.BOT_TOKEN);
 const dailyJob = new CronJob('0 0 1 * * *', async function() {
   await bot.refresh_data();
   await bot.reportDayGames();
+  await bot.reportAllWeekGames();
 });
 
 dailyJob.start();
