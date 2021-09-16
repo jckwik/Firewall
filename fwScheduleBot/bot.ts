@@ -72,7 +72,7 @@ class FirewallBot {
           current_events.push(event);
         }
 
-        total_event_number = response.headers["X-WP-Total"];
+        total_event_number = response.headers["x-wp-total"];
         event_loop_count += 100;
       } catch (error) {
         console.log(error);
@@ -239,23 +239,24 @@ class FirewallBot {
         return false;
       }
     } else {
-      channel.messages
-        .fetch(this.config.DailyScheduleMessage)
-        .then((m) => {
-          m.edit({ embeds: [embed] });
-        })
-        .catch(async (error) => {
-          try {
-            console.warn("Failed to find daily schedule message - resending");
-            const message = await channel.send({ embeds: [embed] });
-            this.config.DailyScheduleMessage = message.id;
-          } catch (error) {
-            console.log(error);
-            return false;
-          }
-        });
-      return true;
+      const message = await channel.messages.fetch(
+        this.config.DailyScheduleMessage
+      );
+      try {
+        await message.edit({ embeds: [embed] });
+      } catch (error) {
+        console.log(error);
+        try {
+          console.warn("Failed to find daily schedule message - resending");
+          const message = await channel.send({ embeds: [embed] });
+          this.config.DailyScheduleMessage = message.id;
+        } catch (error) {
+          console.log(error);
+          return false;
+        }
+      }
     }
+    return true;
   }
 
   build_event_output_embed = (event: FWEvent) => {
@@ -299,33 +300,8 @@ class FirewallBot {
       return false;
     }
 
-    //const current_events = this.config.CurrentEvents;
-    const current_events = [
-      {
-        id: "1",
-        title: { rendered: "Test Event" },
-        date: new Date("2021-07-04T19:00:00"),
-        leagues: [10],
-        day: "0",
-        teams: [3850, 4041],
-        main_results: ["3", "2"],
-        outcome: {
-          "3850": "win",
-          "4041": "loss",
-        },
-        winner: 3850,
-      },
-      {
-        id: "2",
-        title: { rendered: "Test Event 2" },
-        date: new Date("2021-09-02T19:00:00"),
-        teams: [4322, 4043],
-        leagues: [9],
-        day: "1",
-        main_results: [],
-        winner: null,
-      },
-    ];
+    const current_events = this.config.CurrentEvents;
+
     const week_games = current_events.filter(
       (e) => e.day === current_week.toString() && e.leagues.includes(tierId)
     );
