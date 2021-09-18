@@ -8,7 +8,7 @@ export const data = new SlashCommandBuilder()
   .addNumberOption((option) =>
     option
       .setName("week")
-      .setDescription("The current week, if you want to update it.")
+      .setDescription("The current week to report, if you want to update it.")
   )
   .addBooleanOption((option) =>
     option
@@ -25,6 +25,7 @@ export async function execute(interaction: CommandInteraction) {
     bot.config.CurrentWeek = week;
     bot.saveConfig();
   }
+  await bot.refresh_data();
   try {
     const success = await bot.reportAllWeekGames(bot.config.CurrentWeek, newMessage);
     if (success) await interaction.editReply("Sent!");

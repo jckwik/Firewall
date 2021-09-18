@@ -37,6 +37,10 @@ export async function execute(interaction) {
     if (channel) channelName = channel.name;
     else channelName = "Not Found";
     embed.addField("Tier5ScheduleChannel", bot.config.Tier5ScheduleChannel.toString() + " (" + channelName + ")");
+    channel = FirewallBot._client.channels.cache.get(bot.config.CasterScheduleChannel) as TextChannel;
+    if (channel) channelName = channel.name;
+    else channelName = "Not Found";
+    embed.addField("CasterScheduleChannel", bot.config.CasterScheduleChannel.toString() + " (" + channelName + ")");
     embed.addField("Tier1SeasonId", bot.config.Tier1SeasonId.toString());
     embed.addField("Tier2SeasonId", bot.config.Tier2SeasonId.toString());
     embed.addField("Tier3SeasonId", bot.config.Tier3SeasonId.toString());

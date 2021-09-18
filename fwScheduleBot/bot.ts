@@ -1,4 +1,4 @@
-import { Client, MessageEmbed, TextChannel } from "discord.js";
+import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import fs = require("fs");
 const axios = require("axios").default;
 import dateFormat = require("dateformat");
@@ -108,9 +108,9 @@ class FirewallBot {
   }
 
   async refresh_data() {
-    this.get_all_events();
-    this.get_all_players();
-    this.get_current_season_teams();
+    await this.get_all_events();
+    await this.get_all_players();
+    await this.get_current_season_teams();
   }
 
   async get_player_list_by_id(id: number): Promise<Player[]> {
@@ -195,17 +195,7 @@ class FirewallBot {
       return false;
     }
 
-    //const current_events = this.config.CurrentEvents;
-    const current_events = [
-      {
-        id: "1",
-        title: { rendered: "Test Event" },
-        date: new Date("2021-07-04T19:00:00"),
-        teams: [4315, 4253],
-        leagues: [10],
-        day: "0",
-      },
-    ];
+    const current_events = this.config.CurrentEvents;
     const day_games = current_events.filter(
       (e) => e.date.toDateString() === new Date().toDateString()
     );
@@ -235,33 +225,16 @@ class FirewallBot {
       return false;
     }
 
-    if (newMessage) {
-      try {
-        const message = await channel.send({ embeds: [embed] });
-        this.config.DailyScheduleMessage = message.id;
-        this.saveConfig();
-      } catch (error) {
-        console.log(error);
-        return false;
-      }
-    } else {
-      const message = await channel.messages.fetch(
-        this.config.DailyScheduleMessage
-      );
-      try {
-        await message.edit({ embeds: [embed] });
-      } catch (error) {
-        console.log(error);
-        try {
-          console.warn("Failed to find daily schedule message - resending");
-          const message = await channel.send({ embeds: [embed] });
-          this.config.DailyScheduleMessage = message.id;
-        } catch (error) {
-          console.log(error);
-          return false;
-        }
-      }
-    }
+    const message = await this.editMessageOrCreate(
+      channel,
+      this.config.DailyScheduleMessage,
+      embed
+    );
+
+    if (message) {
+      this.config.DailyScheduleMessage = message.id;
+    } else return false;
+
     return true;
   }
 
@@ -273,7 +246,9 @@ class FirewallBot {
     if (!event.winner) {
       embed.addField(
         teams.join(" VS "),
-        `${dateFormat(event.date, "ddd mmm dd yyyy HH:MM:ss Z")}: ${teams.join(" VS ")}`
+        `${dateFormat(event.date, "dddd mmm dd':' h TT Z")}: ${teams.join(
+          " VS "
+        )}`
       );
     } else {
       const winnerIndex = event.teams.indexOf(event.winner);
@@ -314,12 +289,22 @@ class FirewallBot {
         e.leagues.some((r) => tierId.includes(r))
     );
 
+    const week_sorted_games = week_games.sort((a, b) => {
+      if (a.date < b.date) {
+        return -1;
+      }
+      if (a.date > b.date) {
+        return 1;
+      }
+      return 0;
+    });
+
     const embed = new MessageEmbed()
-      .setTitle(`Week ${current_week} Games`)
+      .setTitle(`Week ${current_week} Games: Tier ${tier}`)
       .setTimestamp()
       .setFooter(`Firewall Season 5`);
 
-    for (const game of week_games) {
+    for (const game of week_sorted_games) {
       const game_embed = this.build_event_output_embed(game as FWEvent);
       embed.addField(game_embed.fields[0].name, game_embed.fields[0].value);
     }
@@ -328,22 +313,65 @@ class FirewallBot {
       embed.addField("No games this week", "No games this week");
     }
 
-    console.log(`Tier ${tier} Schedule Channel Id: ` + scheduleChannel);
     const channel = FirewallBot._client.channels.cache.get(
       scheduleChannel
     ) as TextChannel;
     if (!channel) {
-      console.log("Channel not found");
+      console.log("Schedule channel not found");
       return false;
     }
 
     const messageConfigName = `Tier${tier}Week${current_week}ScheduleMessage`;
-    const messageId = this.config[messageConfigName];
-    if (newMessage) {
+    let messageId = this.config[messageConfigName];
+    if (newMessage) messageId = undefined;
+    const message = (await this.editMessageOrCreate(
+      channel,
+      messageId,
+      embed
+    )) as Message;
+
+    if (message) {
+      this.config[messageConfigName] = message.id;
+    } else return false;
+
+    const casterConfigName = `Tier${tier}Week${current_week}CasterScheduleMessage`;
+    messageId = this.config[casterConfigName];
+    if (newMessage) messageId = undefined;
+    const casterChannel = FirewallBot._client.channels.cache.get(
+      this.config[`CasterScheduleChannel`]
+    ) as TextChannel;
+    if (!casterChannel) {
+      console.warn("Caster channel not found");
+    } else {
+      const casterMessage = (await this.editMessageOrCreate(
+        casterChannel,
+        messageId,
+        embed
+      )) as Message;
+
+      if (casterMessage) {
+        this.config[casterConfigName] = casterMessage.id;
+      } else {
+        console.warn(`Caster message not sent - Tier ${tier}`);
+        return false;
+      }
+    }
+
+    this.saveConfig();
+
+    return true;
+  }
+
+  async editMessageOrCreate(
+    channel: TextChannel,
+    messageId: string,
+    embed: MessageEmbed
+  ) {
+    if (!messageId) {
+      console.log("Creating new message");
       try {
         const message = await channel.send({ embeds: [embed] });
-        this.config[messageConfigName] = message.id;
-        this.saveConfig();
+        return message;
       } catch (error) {
         console.error(error);
         return false;
@@ -353,17 +381,17 @@ class FirewallBot {
       try {
         await message.edit({ embeds: [embed] });
       } catch (error) {
-        console.log(error);
+        console.error(error);
         try {
-          console.warn("Failed to find tier schedule message - resending");
+          console.warn("Failed to find message - resending");
           const message = await channel.send({ embeds: [embed] });
-          this.config[messageConfigName] = message.id;
+          return message;
         } catch (error) {
-          console.log(error);
+          console.error(error);
           return false;
         }
       }
-      return true;
+      return message;
     }
   }
 
@@ -391,6 +419,7 @@ interface ScheduleBotConfig extends Record<string, any> {
   Tier5ScheduleChannel?: string;
   DailyScheduleChannel?: string;
   DailyScheduleMessage?: string;
+  CasterScheduleChannel?: string;
   Tier1SeasonId?: number[];
   Tier2SeasonId?: number[];
   Tier3SeasonId?: number[];
