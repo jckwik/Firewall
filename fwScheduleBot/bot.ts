@@ -21,6 +21,7 @@ class FirewallBot {
       Tier4TeamMax: 4000,
       Tier5TeamMax: 4250,
       ListCache: [] as Team[],
+      MaxWeeks: 11,
     };
     this.config = Object.assign(
       this.config,
@@ -81,7 +82,6 @@ class FirewallBot {
     }
     this.config.CurrentEvents = current_events;
     this.saveConfig();
-    console.log(current_events);
   }
 
   async get_all_players() {
@@ -197,7 +197,7 @@ class FirewallBot {
 
     const current_events = this.config.CurrentEvents;
     const day_games = current_events.filter(
-      (e) => e.date.toDateString() === new Date().toDateString()
+      (e) => this.are_dates_same_day(e.date, new Date())
     );
 
     const embed = new MessageEmbed()
@@ -229,13 +229,17 @@ class FirewallBot {
       channel,
       this.config.DailyScheduleMessage,
       embed
-    );
+    ) as Message;
 
     if (message) {
       this.config.DailyScheduleMessage = message.id;
     } else return false;
 
     return true;
+  }
+
+  are_dates_same_day(date1: Date, date2: Date) {
+    return dateFormat(date1, "yyyy-mm-dd") === dateFormat(date2, "yyyy-mm-dd");
   }
 
   build_event_output_embed = (event: FWEvent) => {
@@ -272,10 +276,10 @@ class FirewallBot {
     return embed;
   };
 
-  async reportWeekGames(tier: number, newMessage: boolean = false) {
+  async reportWeekGames(tier: number, week:number, newMessage: boolean = false) {
     const scheduleChannel = this.config[`Tier${tier}ScheduleChannel`];
     const tierId = this.config[`Tier${tier}SeasonId`];
-    const current_week = this.config.CurrentWeek;
+    
     if (!scheduleChannel) {
       console.warn(`Schedule channel tier ${tier} not set - failing`);
       return false;
@@ -285,7 +289,7 @@ class FirewallBot {
 
     const week_games = current_events.filter(
       (e) =>
-        e.day === current_week.toString() &&
+        e.day === week.toString() &&
         e.leagues.some((r) => tierId.includes(r))
     );
 
@@ -300,7 +304,7 @@ class FirewallBot {
     });
 
     const embed = new MessageEmbed()
-      .setTitle(`Week ${current_week} Games: Tier ${tier}`)
+      .setTitle(`Week ${week} Games: Tier ${tier}`)
       .setTimestamp()
       .setFooter(`Firewall Season 5`);
 
@@ -321,7 +325,7 @@ class FirewallBot {
       return false;
     }
 
-    const messageConfigName = `Tier${tier}Week${current_week}ScheduleMessage`;
+    const messageConfigName = `Tier${tier}Week${week}ScheduleMessage`;
     let messageId = this.config[messageConfigName];
     if (newMessage) messageId = undefined;
     const message = (await this.editMessageOrCreate(
@@ -334,7 +338,7 @@ class FirewallBot {
       this.config[messageConfigName] = message.id;
     } else return false;
 
-    const casterConfigName = `Tier${tier}Week${current_week}CasterScheduleMessage`;
+    const casterConfigName = `Tier${tier}Week${week}CasterScheduleMessage`;
     messageId = this.config[casterConfigName];
     if (newMessage) messageId = undefined;
     const casterChannel = FirewallBot._client.channels.cache.get(
@@ -401,12 +405,22 @@ class FirewallBot {
     }
     for (let i = 1; i <= 5; i++) {
       try {
-        await this.reportWeekGames(i, newMessage);
+        await this.reportWeekGames(i, currentWeek, newMessage);
       } catch (error) {
         console.error(error);
         return false;
       }
     }
+    if (currentWeek !== this.config.MaxWeeks) {
+      for (let i = 1; i <= 5; i++) {
+        try {
+          await this.reportWeekGames(i, currentWeek+1, newMessage);
+        } catch (error) {
+          console.error(error);
+          return false;
+        }
+      }
+    } 
     return true;
   }
 }
@@ -437,6 +451,7 @@ interface ScheduleBotConfig extends Record<string, any> {
   Tier5TeamMax?: number;
   CurrentSeason?: number;
   CurrentWeek?: number;
+  MaxWeeks?: number;
   CurrentTeams?: Team[];
   CurrentEvents?: FWEvent[];
   CurrentPlayers?: Player[];
