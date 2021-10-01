@@ -20,6 +20,11 @@ class FirewallBot {
       Tier3TeamMax: 3550,
       Tier4TeamMax: 4000,
       Tier5TeamMax: 4250,
+      Tier1ResultsChannel: "0",
+      Tier2ResultsChannel: "0",
+      Tier3ResultsChannel: "0",
+      Tier4ResultsChannel: "0",
+      Tier5ResultsChannel: "0",
       ListCache: [] as Team[],
       MaxWeeks: 11,
     };
@@ -196,21 +201,31 @@ class FirewallBot {
     }
 
     const current_events = this.config.CurrentEvents;
-    const day_games = current_events.filter(
-      (e) => this.are_dates_same_day(e.date, new Date())
+    const day_games = current_events.filter((e) =>
+      this.are_dates_same_day(e.date, new Date())
     );
+
+    const day_sorted_games = day_games.sort((a, b) => {
+      if (a.date < b.date) {
+        return -1;
+      }
+      if (a.date > b.date) {
+        return 1;
+      }
+      return 0;
+    });
 
     const embed = new MessageEmbed()
       .setTitle(`Today's Games: ${new Date().toDateString()}`)
       .setTimestamp()
       .setFooter(`Firewall Season 5`);
 
-    for (const game of day_games) {
+    for (const game of day_sorted_games) {
       const game_embed = this.build_event_output_embed(game as FWEvent);
       embed.addField(game_embed.fields[0].name, game_embed.fields[0].value);
     }
 
-    if (day_games.length === 0) {
+    if (day_sorted_games.length === 0) {
       embed.addField("No games today", "No games today");
     }
 
@@ -225,11 +240,11 @@ class FirewallBot {
       return false;
     }
 
-    const message = await this.editMessageOrCreate(
+    const message = (await this.editMessageOrCreate(
       channel,
       this.config.DailyScheduleMessage,
       embed
-    ) as Message;
+    )) as Message;
 
     if (message) {
       this.config.DailyScheduleMessage = message.id;
@@ -255,33 +270,48 @@ class FirewallBot {
         )}`
       );
     } else {
-      const winnerIndex = event.teams.indexOf(event.winner);
-      //index is always 0 or 1, so we can check falsy values to see which score to put where
-      if (winnerIndex) {
-        embed.addField(
-          teams.join(" VS "),
-          `Winner: ${this.get_team_name_by_id(event.winner)}: ${
-            event.main_results[1]
-          } - ${event.main_results[0]}`
-        );
-      } else {
-        embed.addField(
-          teams.join(" VS "),
-          `Winner: ${this.get_team_name_by_id(event.winner)}: ${
-            event.main_results[0]
-          } - ${event.main_results[1]}`
-        );
-      }
+      this.buildEventScoreEmbed(event, embed);
     }
     return embed;
   };
 
-  async reportWeekGames(tier: number, week:number, newMessage: boolean = false) {
+  buildEventScoreEmbed(event: FWEvent, embed: MessageEmbed) {
+    const teams = event.teams.map((t) => this.get_team_name_by_id(t));
+    if (!event.winner) return;
+    const winnerIndex = event.teams.indexOf(event.winner);
+    //index is always 0 or 1, so we can check falsy values to see which score to put where
+    if (winnerIndex) {
+      embed.addField(
+        teams.join(" VS "),
+        `Winner: ${this.get_team_name_by_id(event.winner)}: ${
+          event.main_results[1]
+        } - ${event.main_results[0]}`
+      );
+    } else {
+      embed.addField(
+        teams.join(" VS "),
+        `Winner: ${this.get_team_name_by_id(event.winner)}: ${
+          event.main_results[0]
+        } - ${event.main_results[1]}`
+      );
+    }
+  }
+
+  async reportWeekGames(
+    tier: number,
+    week: number,
+    newMessage: boolean = false
+  ) {
     const scheduleChannel = this.config[`Tier${tier}ScheduleChannel`];
+    const resultsChannel = this.config[`Tier${tier}ResultsChannel`];
     const tierId = this.config[`Tier${tier}SeasonId`];
-    
+
     if (!scheduleChannel) {
       console.warn(`Schedule channel tier ${tier} not set - failing`);
+      return false;
+    }
+    if (!resultsChannel) {
+      console.warn(`Results channel tier ${tier} not set - failing`);
       return false;
     }
 
@@ -289,8 +319,7 @@ class FirewallBot {
 
     const week_games = current_events.filter(
       (e) =>
-        e.day === week.toString() &&
-        e.leagues.some((r) => tierId.includes(r))
+        e.day === week.toString() && e.leagues.some((r) => tierId.includes(r))
     );
 
     const week_sorted_games = week_games.sort((a, b) => {
@@ -303,18 +332,29 @@ class FirewallBot {
       return 0;
     });
 
-    const embed = new MessageEmbed()
+    const scheduleEmbed = new MessageEmbed()
       .setTitle(`Week ${week} Games: Tier ${tier}`)
+      .setTimestamp()
+      .setFooter(`Firewall Season 5`);
+
+    const resultEmbed = new MessageEmbed()
+      .setTitle(`Week ${week} Results: Tier ${tier}`)
       .setTimestamp()
       .setFooter(`Firewall Season 5`);
 
     for (const game of week_sorted_games) {
       const game_embed = this.build_event_output_embed(game as FWEvent);
-      embed.addField(game_embed.fields[0].name, game_embed.fields[0].value);
+      scheduleEmbed.addField(
+        game_embed.fields[0].name,
+        game_embed.fields[0].value
+      );
+      if (game.winner) {
+        this.buildEventScoreEmbed(game, resultEmbed);
+      }
     }
 
     if (week_games.length === 0) {
-      embed.addField("No games this week", "No games this week");
+      scheduleEmbed.addField("No games this week", "No games this week");
     }
 
     const channel = FirewallBot._client.channels.cache.get(
@@ -325,18 +365,41 @@ class FirewallBot {
       return false;
     }
 
-    const messageConfigName = `Tier${tier}Week${week}ScheduleMessage`;
-    let messageId = this.config[messageConfigName];
+    const scheduleMessageConfigName = `Tier${tier}Week${week}ScheduleMessage`;
+    let messageId = this.config[scheduleMessageConfigName];
     if (newMessage) messageId = undefined;
     const message = (await this.editMessageOrCreate(
       channel,
       messageId,
-      embed
+      scheduleEmbed
     )) as Message;
 
     if (message) {
-      this.config[messageConfigName] = message.id;
+      this.config[scheduleMessageConfigName] = message.id;
     } else return false;
+
+    const resultChannel = FirewallBot._client.channels.cache.get(
+      resultsChannel
+    ) as TextChannel;
+    if (!resultChannel) {
+      console.log("Results channel not found");
+      return false;
+    }
+
+    const resultMessageConfigName = `Tier${tier}Week${week}ResultsMessage`;
+    messageId = this.config[resultMessageConfigName];
+    if (newMessage) messageId = undefined;
+    if (resultEmbed.fields.length > 0) {
+      const resultMessage = (await this.editMessageOrCreate(
+        resultChannel,
+        messageId,
+        resultEmbed
+      )) as Message;
+
+      if (resultMessage) {
+        this.config[resultMessageConfigName] = resultMessage.id;
+      } else return false;
+    }
 
     const casterConfigName = `Tier${tier}Week${week}CasterScheduleMessage`;
     messageId = this.config[casterConfigName];
@@ -350,7 +413,7 @@ class FirewallBot {
       const casterMessage = (await this.editMessageOrCreate(
         casterChannel,
         messageId,
-        embed
+        scheduleEmbed
       )) as Message;
 
       if (casterMessage) {
@@ -403,24 +466,27 @@ class FirewallBot {
     if (!currentWeek) {
       currentWeek = this.config.CurrentWeek;
     }
-    for (let i = 1; i <= 5; i++) {
-      try {
-        await this.reportWeekGames(i, currentWeek, newMessage);
-      } catch (error) {
-        console.error(error);
-        return false;
-      }
-    }
-    if (currentWeek !== this.config.MaxWeeks) {
+
+    for (let week = currentWeek; week > 0; week--) {
       for (let i = 1; i <= 5; i++) {
         try {
-          await this.reportWeekGames(i, currentWeek+1, newMessage);
+          await this.reportWeekGames(i, week, newMessage);
         } catch (error) {
           console.error(error);
           return false;
         }
       }
-    } 
+    }
+    if (currentWeek !== this.config.MaxWeeks) {
+      for (let i = 1; i <= 5; i++) {
+        try {
+          await this.reportWeekGames(i, currentWeek + 1, newMessage);
+        } catch (error) {
+          console.error(error);
+          return false;
+        }
+      }
+    }
     return true;
   }
 }
@@ -434,6 +500,11 @@ interface ScheduleBotConfig extends Record<string, any> {
   DailyScheduleChannel?: string;
   DailyScheduleMessage?: string;
   CasterScheduleChannel?: string;
+  Tier1ResultsChannel?: string;
+  Tier2ResultsChannel?: string;
+  Tier3ResultsChannel?: string;
+  Tier4ResultsChannel?: string;
+  Tier5ResultsChannel?: string;
   Tier1SeasonId?: number[];
   Tier2SeasonId?: number[];
   Tier3SeasonId?: number[];

@@ -15,12 +15,18 @@ export const data = new SlashCommandBuilder()
         .addChoice('5', 5))
   .addChannelOption(option => option.setName('channel')
         .setRequired(true)
-        .setDescription('The channel to set as the schedule channel'));
+        .setDescription('The channel to set as the schedule channel'))
+.addStringOption(option => option.setName('type')
+        .setRequired(true)
+        .setDescription('The type of channel to set (results or schedule)')
+        .addChoice('Results', 'Results')
+        .addChoice('Schedule', 'Schedule'));
 export async function execute(interaction: CommandInteraction) {
   const tier = interaction.options.getNumber('tier');
   const channel = interaction.options.getChannel('channel') as GuildChannel;
+  const type = interaction.options.getString('type');
   const bot = FirewallBot.Instance();
-  bot.config[`Tier${tier}ScheduleChannel`] = channel.id;
+  bot.config[`Tier${tier}${type}Channel`] = channel.id;
   bot.saveConfig();
-  interaction.reply({content: `Configuration setting Tier${tier}ScheduleChannel set to ${channel.id}`, ephemeral: true});
+  interaction.reply({content: `Configuration setting Tier${tier}${type}Channel set to ${channel.id} (${channel.name})`, ephemeral: true});
 }
