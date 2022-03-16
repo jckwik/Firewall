@@ -2,6 +2,9 @@ import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import fs = require("fs");
 const axios = require("axios").default;
 import dateFormat = require("dateformat");
+import { Team } from "./models/team";
+import { FWEvent } from "./models/FWEvent";
+import { Player } from "./models/player";
 
 class FirewallBot {
   private static _instance: FirewallBot;
@@ -57,7 +60,7 @@ class FirewallBot {
       for (const team of response.data) {
         teams.push({ id: team.id, name: team.title.rendered });
       }
-      //console.log(teams.find(t => t.id === 4419));
+
       this.config.CurrentTeams = teams;
       this.saveConfig();
     } catch (error) {
@@ -262,7 +265,7 @@ class FirewallBot {
 
     const teams = event.teams.map((t) => this.get_team_name_by_id(t));
 
-    if (!event.winner) {
+    if (event.main_results.length === 0) {
       embed.addField(
         teams.join(" VS "),
         `${dateFormat(event.date, "dddd mmm dd':' h TT Z")}: ${teams.join(
@@ -472,7 +475,7 @@ class FirewallBot {
         try {
           await this.reportWeekGames(i, week, newMessage);
         } catch (error) {
-          console.error(error);
+          console.error(error.stack);
           return false;
         }
       }
@@ -482,7 +485,7 @@ class FirewallBot {
         try {
           await this.reportWeekGames(i, currentWeek + 1, newMessage);
         } catch (error) {
-          console.error(error);
+          console.error(error.stack);
           return false;
         }
       }
@@ -529,38 +532,4 @@ interface ScheduleBotConfig extends Record<string, any> {
   ListCache?: Team[];
 }
 
-interface Team {
-  id: number;
-  name: string;
-  roleid?: number;
-}
-
-interface FWEvent extends Record<string, any> {
-  id: string;
-  date: Date;
-  link?: string;
-  title: {
-    rendered: string;
-  };
-  leagues?: number[];
-  seasons?: number[];
-  teams: number[];
-  main_results: string[];
-  outcome: string[];
-  winner: number;
-  day: string;
-}
-
-interface Player {
-  dpssr?: number;
-  dpssrs?: number;
-  tanksr?: number;
-  tanksrtwo?: number;
-  supportsr?: number;
-  supportsrtwo?: number;
-  sr?: number;
-  id?: number;
-  name?: string;
-}
-
-export { FirewallBot, Team, FWEvent, Player };
+export { FirewallBot };
